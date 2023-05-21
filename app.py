@@ -4,53 +4,47 @@ import cv2
 from flask import Flask, request, jsonify, send_file
 from PIL import Image
 from io import BytesIO
+from random import randint
 
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__)
 
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return "<p>Hello, World!</p>"
 
 
-@app.route("/removeBackground", methods = ['POST'])
-def removeBg():
+@app.route("/removeBackground", methods=['POST'])
+def process_image():
     if 'image' not in request.files:
         return jsonify({'error': 'No image provided'})
 
     image_file = request.files['image']
     image = Image.open(image_file)
 
-    # Convert the image to RGBA format
-    image = image.convert('RGBA')
-
-    # Create a transparent background
-    alpha_mask = Image.new('RGBA', image.size, (0, 0, 0, 0))
-
-    # Combine the image with the transparent background
-    image = Image.alpha_composite(image, alpha_mask)
-
-    # Convert the image to numpy array
     image_np = np.array(image)
 
-    # Remove the background using rembg library
     output = rembg.remove(image_np)
 
-    # Create a new PIL Image from the output
     output_image = Image.fromarray(output)
+
+    passport_size = (600, 600)  # 2x2 inches at 300dpi
+    output_image = output_image.resize(passport_size)
+
+    output_image = output_image.convert('RGBA')
+
+    background_image = Image.new('RGBA', passport_size, (0, 255, 0, 255))
+
+    background_image.paste(output_image, (0, 0), output_image)
 
     # Save the output image as a BytesIO object
     output_bytes = BytesIO()
-    output_image.save(output_bytes, format='PNG')
+    background_image.save(output_bytes, format='PNG')
     output_bytes.seek(0)
 
     return send_file(output_bytes, mimetype='image/png')
-    # return processed_image_jpeg.tobytes(), {'Content-Type':'image/jpeg'}
-    
-    
 
 
-
-if __name__ == "__main__":
-    app.run(debug = True, port = 8000)
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True)
