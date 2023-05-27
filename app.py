@@ -1,14 +1,13 @@
 import rembg
 import numpy as np
-import cv2
 from flask import Flask, request, jsonify, send_file
 from PIL import Image
 from io import BytesIO
 from random import randint
 
+Image.LOAD_TRUNCATED_IMAGES = True
 
 app = Flask(__name__, static_folder='static')
-
 
 @app.route('/')
 def index():
@@ -25,7 +24,7 @@ def process_image():
 
     image_np = np.array(image)
 
-    output = rembg.remove(image_np)
+    output = rembg.remove(image_np, bgcolor = (255, 0, 0, 255))
 
     output_image = Image.fromarray(output)
 
@@ -34,16 +33,19 @@ def process_image():
 
     output_image = output_image.convert('RGBA')
 
-    background_image = Image.new('RGBA', passport_size, (0, 255, 0, 255))
+    background_image = Image.new('RGBA', passport_size)
 
     background_image.paste(output_image, (0, 0), output_image)
-
-    # Save the output image as a BytesIO object
     output_bytes = BytesIO()
     background_image.save(output_bytes, format='PNG')
     output_bytes.seek(0)
 
-    return send_file(output_bytes, mimetype='image/png')
+    return send_file(
+    output_bytes,
+    mimetype='image/png',
+    as_attachment=True,
+    download_name="custom_name.png"
+)
 
 
 if __name__ == '__main__':
